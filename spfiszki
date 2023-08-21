@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quiz Hiszpański A1/A2</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://www.tabletowo.pl/wp-content/uploads/2022/08/duolingo-grafika.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        .container {
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 20px;
+            max-width: 400px;
+            background-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        #word {
+            font-size: 24px;
+            color: #333;
+        }
+
+        #translation {
+            padding: 5px;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        button:hover {
+            background-color: #555;
+        }
+
+        #message {
+            color: #900;
+        }
+
+        .word-background {
+            background-color: #f0f0f0;
+        }
+
+        #results-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        .special-characters {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .special-characters button {
+            margin: 5px;
+            padding: 5px 10px;
+            background-color: #333;
+            color: #fff;
+            border: none;
+            cursor: pointer;
+        }
+
+        .special-characters button:hover {
+            background-color: #555;
+        }
+
+        select {
+            padding: 5px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Quiz Hiszpański A1/A2</h1>
+        <p>Wybierz kategorię:</p>
+        <select id="categorySelect" onchange="selectCategory()">
+            <option value="jedzenie">Jedzenie</option>
+            <option value="dom">Dom</option>
+            <option value="zawody">Zawody</option>
+        </select>
+        <p>Przetłumacz słowo z polskiego na hiszpański:</p>
+        <div id="word">Dom</div>
+        <input type="text" id="translation" placeholder="Wpisz tłumaczenie" onkeypress="checkEnter(event)">
+        <button onclick="checkTranslation()">Sprawdź</button>
+        <p id="message"></p>
+
+        <div class="special-characters">
+            <button onclick="addSpecialCharacter('á')">á</button>
+            <button onclick="addSpecialCharacter('é')">é</button>
+            <button onclick="addSpecialCharacter('í')">í</button>
+            <button onclick="addSpecialCharacter('ó')">ó</button>
+            <button onclick="addSpecialCharacter('ú')">ú</button>
+            <button onclick="addSpecialCharacter('ñ')">ñ</button>
+        </div>
+
+        <div id="results-modal">
+            <div class="modal-content">
+                <h2>Dziękujemy za grę!</h2>
+                <p id="results-message"></p>
+                <button onclick="resetGame()">Tak, zagram jeszcze raz</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const categories = {
+            jedzenie: [
+                { polish: "chleb", spanish: "pan" },
+                { polish: "ser", spanish: "queso" },
+                { polish: "szynka", spanish: "jamón" },
+                { polish: "masło", spanish: "mantequilla" }
+            ],
+            dom: [
+                { polish: "salon", spanish: "sala de estar" },
+                { polish: "sypialnia", spanish: "dormitorio" },
+                { polish: "łazienka", spanish: "baño" },
+                { polish: "kuchnia", spanish: "cocina" }
+            ],
+            zawody: [
+                { polish: "kucharz", spanish: "cocinero" },
+                { polish: "student", spanish: "estudiante" },
+                { polish: "policjant", spanish: "policía" },
+                { polish: "nauczyciel", spanish: "profesor" }
+            ]
+        };
+
+        let currentCategory = "jedzenie"; // Domyślna kategoria
+        let currentWordIndex;
+        let correctAnswers = 0;
+        let totalAttempts = 0;
+        let incorrectAttempts = 0;
+        let usedWordIndexes = [];
+        let results = [];
+
+        function getRandomWordIndex() {
+            let newIndex;
+            do {
+                newIndex = Math.floor(Math.random() * categories[currentCategory].length);
+            } while (usedWordIndexes.includes(newIndex));
+            usedWordIndexes.push(newIndex);
+            return newIndex;
+        }
+
+        function selectCategory() {
+            currentCategory = document.getElementById("categorySelect").value;
+            resetGame();
+        }
+
+        function displayWord() {
+            currentWordIndex = getRandomWordIndex();
+            const wordElement = document.getElementById("word");
+            wordElement.textContent = categories[currentCategory][currentWordIndex].polish;
+            wordElement.classList.add("word-background");
+            document.getElementById("message").textContent = "";
+            document.getElementById("translation").value = "";
+        }
+
+        function checkEnter(event) {
+            if (event.key === "Enter") {
+                checkTranslation();
+            }
+        }
+
+        function checkTranslation() {
+            const translation = document.getElementById("translation").value.toLowerCase();
+            totalAttempts++;
+            if (translation === categories[currentCategory][currentWordIndex].spanish.toLowerCase()) {
+                correctAnswers++;
+                results.push({ index: currentWordIndex, attempts: totalAttempts });
+                if (usedWordIndexes.length < categories[currentCategory].length) {
+                    displayWord();
+                } else {
+                    showResults();
+                }
+            } else {
+                incorrectAttempts++;
+                document.getElementById("message").textContent = `Błędne tłumaczenie. Poprawne to: ${categories[currentCategory][currentWordIndex].spanish}`;
+            }
+        }
+
+        function showResults() {
+            const resultsModal = document.getElementById("results-modal");
+            resultsModal.style.display = "flex";
+            const resultsMessage = document.getElementById("results-message");
+            resultsMessage.textContent = `Dziękujemy za grę!\nLiczba poprawnych odpowiedzi: ${correctAnswers}\nLiczba błędnych odpowiedzi: ${incorrectAttempts}`;
+        }
+
+        function resetGame() {
+            correctAnswers = 0;
+            totalAttempts = 0;
+            incorrectAttempts = 0;
+            usedWordIndexes = [];
+            results = [];
+            document.getElementById("results-modal").style.display = "none";
+            displayWord();
+        }
+
+        function addSpecialCharacter(character) {
+            const translationInput = document.getElementById("translation");
+            translationInput.value += character;
+        }
+
+        // Inicjalizacja gry
+        resetGame();
+    </script>
+</body>
+</html>
